@@ -1,0 +1,164 @@
+{
+  "log": {
+    "level": "warn",
+    "timestamp": true
+  },
+  "dns": {
+    "servers": [
+      {
+        "tag": "dns-remote",
+        "address": "https://8.8.8.8/dns-query",
+        "strategy": "prefer_ipv4",
+        "detour": "select-proxy"
+      },
+      {
+        "tag": "dns-direct",
+        "address": "https://77.88.8.8/dns-query",
+        "strategy": "prefer_ipv4",
+        "detour": "direct"
+      }
+    ],
+    "rules": [
+      {
+        "outbound": "any",
+        "server": "dns-direct"
+      },
+      {
+        "geosite": ["ru", "category-gov-ru", "yandex", "mailru", "vk"],
+        "server": "dns-direct"
+      },
+      {
+        "server": "dns-remote"
+      }
+    ],
+    "strategy": "prefer_ipv4"
+  },
+  "inbounds": [
+    {
+      "type": "tun",
+      "tag": "tun-in",
+      "inet4_address": "172.19.0.1/30",
+      "auto_route": true,
+      "strict_route": true,
+      "stack": "system",
+      "sniff": true,
+      "sniff_override_destination": true
+    }
+  ],
+  "outbounds": [
+    {
+      "type": "selector",
+      "tag": "select-proxy",
+      "outbounds": [
+        "VLESS-Reality-SelfSteal",
+        "VLESS-Reality-Classic",
+        "Hysteria2-Fast"
+      ],
+      "default": "VLESS-Reality-SelfSteal"
+    },
+    {
+      "type": "vless",
+      "tag": "VLESS-Reality-SelfSteal",
+      "server": "${SERVER_ADDRESS}",
+      "server_port": 443,
+      "uuid": "${CLIENT_UUID}",
+      "flow": "xtls-rprx-vision",
+      "network": "tcp",
+      "tls": {
+        "enabled": true,
+        "server_name": "${STEAL_DOMAIN}",
+        "utls": {
+          "enabled": true,
+          "fingerprint": "chrome"
+        },
+        "reality": {
+          "enabled": true,
+          "public_key": "${REALITY_PUB_KEY}",
+          "short_id": "${REALITY_SHORT_ID}"
+        }
+      }
+    },
+    {
+      "type": "vless",
+      "tag": "VLESS-Reality-Classic",
+      "server": "${SERVER_ADDRESS}",
+      "server_port": 443,
+      "uuid": "${CLIENT_UUID}",
+      "flow": "xtls-rprx-vision",
+      "network": "tcp",
+      "tls": {
+        "enabled": true,
+        "server_name": "${CLASSIC_SNI}",
+        "utls": {
+          "enabled": true,
+          "fingerprint": "chrome"
+        },
+        "reality": {
+          "enabled": true,
+          "public_key": "${REALITY_PUB_KEY}",
+          "short_id": "${REALITY_SHORT_ID}"
+        }
+      }
+    },
+    {
+      "type": "hysteria2",
+      "tag": "Hysteria2-Fast",
+      "server": "${SERVER_ADDRESS}",
+      "server_port": 443,
+      "ports": "20000:50000",
+      "password": "${HY2_PASSWORD}",
+      "obfs": {
+        "type": "salamander",
+        "password": "${HY2_OBFS_PASSWORD}"
+      },
+      "tls": {
+        "enabled": true,
+        "server_name": "${PRIMARY_DOMAIN}",
+        "insecure": ${HY2_TLS_INSECURE}
+      }
+    },
+    {
+      "type": "direct",
+      "tag": "direct"
+    },
+    {
+      "type": "block",
+      "tag": "block"
+    }
+  ],
+  "route": {
+    "rules": [
+      {
+        "ip_is_private": true,
+        "outbound": "direct"
+      },
+      {
+        "protocol": "dns",
+        "outbound": "dns-out"
+      },
+      {
+        "geosite": [
+          "category-gov-ru",
+          "ru",
+          "yandex",
+          "mailru",
+          "vk",
+          "sberbank",
+          "tinkoff"
+        ],
+        "outbound": "direct"
+      },
+      {
+        "geoip": [
+          "ru",
+          "private"
+        ],
+        "outbound": "direct"
+      },
+      {
+        "outbound": "select-proxy"
+      }
+    ],
+    "auto_detect_interface": true
+  }
+}

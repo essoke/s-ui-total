@@ -1,0 +1,154 @@
+{
+  "log": {
+    "disabled": false,
+    "level": "warn",
+    "timestamp": true
+  },
+  "dns": {
+    "servers": [
+      {
+        "tag": "dns-remote",
+        "address": "https://1.1.1.1/dns-query",
+        "strategy": "prefer_ipv4"
+      },
+      {
+        "tag": "dns-direct",
+        "address": "local",
+        "strategy": "prefer_ipv4",
+        "detour": "direct"
+      }
+    ],
+    "rules": [
+      {
+        "outbound": "any",
+        "server": "dns-direct"
+      }
+    ],
+    "independent_cache": true
+  },
+  "inbounds": [
+    {
+      "type": "vless",
+      "tag": "in-vless-steal",
+      "listen": "127.0.0.1",
+      "listen_port": 45443,
+      "users": [
+        {
+          "uuid": "${CLIENT_UUID}",
+          "flow": "xtls-rprx-vision"
+        }
+      ],
+      "tls": {
+        "enabled": true,
+        "server_name": "${STEAL_DOMAIN}",
+        "reality": {
+          "enabled": true,
+          "handshake": {
+            "server": "127.0.0.1",
+            "server_port": 9443
+          },
+          "private_key": "${REALITY_PRIV_KEY}",
+          "short_id": [
+            "${REALITY_SHORT_ID}"
+          ],
+          "max_time_difference": "1m"
+        }
+      }
+    },
+    {
+      "type": "vless",
+      "tag": "in-vless-classic",
+      "listen": "127.0.0.1",
+      "listen_port": 46443,
+      "users": [
+        {
+          "uuid": "${CLIENT_UUID}",
+          "flow": "xtls-rprx-vision"
+        }
+      ],
+      "tls": {
+        "enabled": true,
+        "server_name": "${CLASSIC_SNI}",
+        "reality": {
+          "enabled": true,
+          "handshake": {
+            "server": "${CLASSIC_SNI}",
+            "server_port": 443
+          },
+          "private_key": "${REALITY_PRIV_KEY}",
+          "short_id": [
+            "${REALITY_SHORT_ID}"
+          ],
+          "max_time_difference": "1m"
+        }
+      }
+    },
+    {
+      "type": "vless",
+      "tag": "in-vless-xhttp",
+      "listen": "127.0.0.1",
+      "listen_port": 50443,
+      "users": [
+        {
+          "uuid": "${CLIENT_UUID}"
+        }
+      ],
+      "transport": {
+        "type": "http",
+        "host": [
+          "${PRIMARY_DOMAIN}"
+        ],
+        "path": "/${XHTTP_PATH}"
+      }
+    },
+    {
+      "type": "hysteria2",
+      "tag": "in-hysteria2",
+      "listen": "::",
+      "listen_port": 443,
+      "users": [
+        {
+          "password": "${HY2_PASSWORD}"
+        }
+      ],
+      "obfs": {
+        "type": "salamander",
+        "password": "${HY2_OBFS_PASSWORD}"
+      },
+      "tls": {
+        "enabled": true,
+        "certificate_path": "${SSL_CERT_PATH}",
+        "key_path": "${SSL_KEY_PATH}",
+        "alpn": [
+          "h3"
+        ]
+      },
+      "ignore_client_bandwidth": false,
+      "masquerade": "https://www.google.com"
+    }
+  ],
+  "outbounds": [
+    {
+      "type": "direct",
+      "tag": "direct"
+    },
+    ${WARP_OUTBOUND_BLOCK}
+    {
+      "type": "block",
+      "tag": "block"
+    }
+  ],
+  "route": {
+    "rules": [
+      {
+        "protocol": "bittorrent",
+        "outbound": "block"
+      },
+      ${WARP_ROUTE_RULE}
+      {
+        "outbound": "direct"
+      }
+    ],
+    "auto_detect_interface": true
+  }
+}

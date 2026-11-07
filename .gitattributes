@@ -1,0 +1,6 @@
+# Enforce Unix LF line endings for all shell scripts and text files
+* text eol=lf
+*.sh text eol=lf
+*.json text eol=lf
+*.html text eol=lf
+*.md text eol=lf

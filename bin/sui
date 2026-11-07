@@ -1,0 +1,215 @@
+#!/usr/bin/env bash
+# ==============================================================================
+# S-UI Anti-DPI RU Reality Stack
+# CLI Management Utility (/usr/local/bin/sui)
+# ==============================================================================
+
+set -e
+
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+PURPLE='\033[0;35m'
+CYAN='\033[0;36m'
+WHITE='\033[1;37m'
+BOLD='\033[1m'
+NC='\033[0m'
+
+ENV_FILE="/etc/s-ui/sui-total.conf"
+
+if [[ ! -f "$ENV_FILE" ]]; then
+    echo -e "${RED}[ОШИБКА] Конфигурационный файл $ENV_FILE не найден!${NC}"
+    echo -e "Пожалуйста, сначала выполните установку через install.sh."
+    exit 1
+fi
+
+# Загрузка переменных окружения
+# shellcheck source=/dev/null
+source "$ENV_FILE"
+
+show_banner() {
+    clear
+    echo -e "${CYAN}${BOLD}"
+    cat << 'EOF'
+  ____        _   _ ___   _____ ___ _____  _    _     
+ / ___|      | | | |_ _| |_   _/ _ \_   _|/ \  | |    
+ \___ \ _____| | | || |    | || | | || | / _ \ | |    
+  ___) |_____| |_| || |    | || |_| || |/ ___ \| |___ 
+ |____/       \___/|___|   |_| \___/ |_/_/   \_\_____|
+EOF
+    echo -e "${NC}"
+    echo -e "${WHITE}  S-UI Anti-DPI Management Console | RU Reality Stack${NC}"
+    echo -e "${CYAN}=====================================================${NC}"
+}
+
+show_status() {
+    echo -e "\n${BOLD}${CYAN}--- Статус системных служб ---${NC}"
+
+    local services=("nginx" "s-ui" "fail2ban" "cron")
+    for svc in "${services[@]}"; do
+        if systemctl is-active --quiet "$svc"; then
+            echo -e "  [${GREEN}АКТИВНА${NC}]   Служба: ${BOLD}$svc${NC}"
+        else
+            echo -e "  [${RED}ОСТАНОВЛЕНА${NC}] Служба: ${BOLD}$svc${NC}"
+        fi
+    done
+
+    # Проверка UFW
+    if ufw status | grep -qw "active"; then
+        echo -e "  [${GREEN}АКТИВЕН${NC}]   Фаервол: ${BOLD}ufw${NC}"
+    else
+        echo -e "  [${RED}ОТКЛЮЧЕН${NC}]  Фаервол: ${BOLD}ufw${NC}"
+    fi
+
+    # Проверка BBR
+    local cc
+    cc=$(sysctl -n net.ipv4.tcp_congestion_control 2>/dev/null || echo "неизвестно")
+    echo -e "  [${GREEN}BBR${NC}]       Алгоритм перегрузок: ${BOLD}$cc${NC}"
+
+    echo -e "\n${YELLOW}Нажмите Enter для возврата в меню...${NC}"
+    read -r
+}
+
+show_credentials_and_qr() {
+    echo -e "\n${BOLD}${CYAN}--- Реквизиты доступа и ссылки подключения ---${NC}"
+    local host="${PRIMARY_DOMAIN:-$SERVER_IP}"
+    echo -e "${WHITE}Адрес панели S-UI:${NC}    ${BOLD}https://${host}/${SUI_PATH}/${NC}"
+    echo -e "${WHITE}Публичный IP:${NC}          ${BOLD}${SERVER_IP}${NC}"
+    echo -e "${WHITE}Ссылка на подписку:${NC}    ${BOLD}${CLIENT_SUB_URL}${NC}"
+    echo -e "${CYAN}-----------------------------------------------------${NC}"
+
+    echo -e "\n${GREEN}${BOLD}1. VLESS-Reality Self-Steal (Основной протокол против ТСПУ):${NC}"
+    echo -e "${CYAN}${VLESS_STEAL_LINK}${NC}"
+    if command -v qrencode >/dev/null 2>&1; then
+        echo -e "${YELLOW}QR-код VLESS Self-Steal:${NC}"
+        qrencode -t ANSIUTF8 "${VLESS_STEAL_LINK}"
+    fi
+
+    echo -e "\n${GREEN}${BOLD}2. VLESS-Reality Classic (Маскировка под ${CLASSIC_SNI}):${NC}"
+    echo -e "${CYAN}${VLESS_CLASSIC_LINK}${NC}"
+
+    echo -e "\n${GREEN}${BOLD}3. Hysteria 2 (UDP 443 + Port Hopping 20000-50000):${NC}"
+    echo -e "${CYAN}${HY2_LINK}${NC}"
+    if command -v qrencode >/dev/null 2>&1; then
+        echo -e "${YELLOW}QR-код Hysteria 2:${NC}"
+        qrencode -t ANSIUTF8 "${HY2_LINK}"
+    fi
+
+    echo -e "\n${YELLOW}Нажмите Enter для возврата в меню...${NC}"
+    read -r
+}
+
+restart_services() {
+    echo -e "\n${YELLOW}Перезапуск служб Nginx и S-UI...${NC}"
+    systemctl restart nginx
+    systemctl restart s-ui
+    echo -e "${GREEN}Службы успешно перезапущены!${NC}"
+    sleep 2
+}
+
+change_classic_sni() {
+    echo -e "\n${BOLD}${CYAN}--- Смена маскировочного SNI (Classic Reality) ---${NC}"
+    echo -e "Текущий SNI: ${BOLD}${CLASSIC_SNI}${NC}"
+    echo -e "Популярные рабочие варианты в РФ:"
+    echo -e "  1) dl.google.com"
+    echo -e "  2) gateway.icloud.com"
+    echo -e "  3) www.microsoft.com"
+    echo -e "  4) speedtest.net"
+    echo -e "  5) samsung.com"
+    read -rp "Введите новый домен SNI: " new_sni
+
+    if [[ -z "$new_sni" ]]; then
+        echo -e "${RED}Отменено: введен пустой домен.${NC}"
+        sleep 2
+        return
+    fi
+
+    echo -e "${YELLOW}Обновление конфигураций...${NC}"
+    sed -i "s/CLASSIC_SNI=\"${CLASSIC_SNI}\"/CLASSIC_SNI=\"${new_sni}\"/g" "$ENV_FILE"
+    sed -i "s/\"${CLASSIC_SNI}\"/\"${new_sni}\"/g" /etc/nginx/stream.d/00-stream-router.conf
+    sed -i "s/\"server_name\": \"${CLASSIC_SNI}\"/\"server_name\": \"${new_sni}\"/g" /usr/local/s-ui/bin/config.json
+    sed -i "s/\"server\": \"${CLASSIC_SNI}\"/\"server\": \"${new_sni}\"/g" /usr/local/s-ui/bin/config.json
+
+    systemctl reload nginx
+    systemctl restart s-ui
+    echo -e "${GREEN}Маскировочный SNI успешно изменен на $new_sni!${NC}"
+    sleep 2
+}
+
+update_geo_rules() {
+    echo -e "\n${YELLOW}Обновление баз GeoIP и GeoSite (Loyalsoldier / v2fly)...${NC}"
+    local dest_dir="/usr/local/s-ui/bin"
+    curl -fsSL -o "$dest_dir/geoip.db" "https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geoip.dat" || true
+    curl -fsSL -o "$dest_dir/geosite.db" "https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geosite.dat" || true
+    systemctl restart s-ui
+    echo -e "${GREEN}Базы гео-маршрутизации успешно обновлены!${NC}"
+    sleep 2
+}
+
+show_logs() {
+    echo -e "\n${BOLD}${CYAN}--- Выберите логи для просмотра ---${NC}"
+    echo -e "1) Логи S-UI / Sing-box"
+    echo -e "2) Логи ошибок Nginx"
+    echo -e "0) Назад"
+    read -rp "Выберите пункт [0-2]: " log_choice
+
+    case "$log_choice" in
+        1) journalctl -u s-ui -f -n 50 ;;
+        2) tail -f /var/log/nginx/error.log ;;
+        *) return ;;
+    esac
+}
+
+uninstall_all() {
+    echo -e "\n${RED}${BOLD}ВНИМАНИЕ: Будут полностью удалены S-UI, конфигурации Nginx, правила UFW и сертификаты!${NC}"
+    read -rp "Вы действительно хотите удалить всё? (yes/no): " confirm
+    if [[ "$confirm" != "yes" ]]; then
+        echo -e "${GREEN}Удаление отменено.${NC}"
+        sleep 2
+        return
+    fi
+
+    echo -e "${YELLOW}Остановка и удаление служб...${NC}"
+    systemctl stop s-ui nginx 2>/dev/null || true
+    systemctl disable s-ui 2>/dev/null || true
+
+    rm -f /etc/systemd/system/s-ui.service
+    systemctl daemon-reload
+
+    rm -rf /usr/local/s-ui /etc/s-ui /var/www/decoy /etc/nginx/stream.d /etc/nginx/conf.d/01-web-l7.conf /usr/local/bin/sui /usr/local/bin/sing-box /usr/local/bin/wgcf
+
+    # Сброс правил UFW
+    ufw --force reset 2>/dev/null || true
+    ufw disable 2>/dev/null || true
+
+    echo -e "${GREEN}Комплекс S-UI Anti-DPI успешно полностью удален с сервера.${NC}"
+    exit 0
+}
+
+# Главный цикл меню
+while true; do
+    show_banner
+    echo -e "  ${BOLD}1)${NC} Проверить статус служб"
+    echo -e "  ${BOLD}2)${NC} Показать ссылки подключения и QR-коды"
+    echo -e "  ${BOLD}3)${NC} Сменить маскировочный SNI (Classic Reality)"
+    echo -e "  ${BOLD}4)${NC} Перезапустить службы (Nginx + S-UI)"
+    echo -e "  ${BOLD}5)${NC} Обновить базы GeoIP / GeoSite (обход блокировок)"
+    echo -e "  ${BOLD}6)${NC} Просмотр логов в реальном времени"
+    echo -e "  ${BOLD}7)${NC} ${RED}Полное удаление комплекса с сервера${NC}"
+    echo -e "  ${BOLD}0)${NC} Выход"
+    echo -e "${CYAN}-----------------------------------------------------${NC}"
+    read -rp "Выберите действие [0-7]: " choice
+
+    case "$choice" in
+        1) show_status ;;
+        2) show_credentials_and_qr ;;
+        3) change_classic_sni ;;
+        4) restart_services ;;
+        5) update_geo_rules ;;
+        6) show_logs ;;
+        7) uninstall_all ;;
+        0) exit 0 ;;
+        *) echo -e "${RED}Неверный пункт!${NC}"; sleep 1 ;;
+    esac
+done

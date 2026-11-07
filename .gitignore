@@ -1,0 +1,24 @@
+# Logs & temp files
+*.log
+*.tmp
+*.bak
+*.swp
+*.pid
+
+# Credentials and sensitive runtime config
+warp_credentials.json
+sui-total.conf
+*.pem
+*.key
+*.crt
+
+# OS specific files
+.DS_Store
+Thumbs.db
+ehthumbs.db
+
+# IDE specific files
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
