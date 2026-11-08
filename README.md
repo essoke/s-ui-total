@@ -39,7 +39,7 @@
 
 ---
 
-## 🗺️ Схема маршрутизации трафика (Traffic Flow)
+## Схема маршрутизации трафика (Traffic Flow)
 
 ```mermaid
 flowchart TD
@@ -159,19 +159,19 @@ S-UI-Total/
 
 ---
 
-## 💖 Благодарности и источники вдохновения (Credits)
+## Благодарности (Credits)
 
-Архитектурные решения, концепции маскировки и алгоритмы обхода блокировок в данном проекте во многом вдохновлены и базируются на наработках сообщества и авторов следующих замечательных открытых проектов:
+Архитектурные решения базируются на наработках сообщества и авторов следующих открытых проектов:
 
-* **[torrua/Nginx-L4-Stream-Router-Mask-for-3x-ui](https://github.com/torrua/Nginx-L4-Stream-Router-Mask-for-3x-ui)** — за превосходную модульную архитектуру, реализацию Zero-SNI Shield, перенаправление Port Hopping через `iptables NAT` и механизм защиты от активного зондирования ТСПУ.
-* **[Itman75/Nginx-L4-Stream-Router-Mask-for-3x-ui](https://github.com/Itman75/Nginx-L4-Stream-Router-Mask-for-3x-ui)** — первопроходцу концепции «Hardened Master Engine» и внедрению Nginx L4 Stream SNI Router для прозрачного разделения протоколов на 443 порту без терминации TLS.
-* **[mozaroc/3x-ui-pro](https://github.com/mozaroc/3x-ui-pro)** — за идеи интеграции реалистичных сайтов-маскировок (decoy sites), автоматизацию выпуска SSL-сертификатов и эргономику интерактивных установщиков.
-* **[xVRVx/autoXRAY](https://github.com/xVRVx/autoXRAY)** — за практические исследования Self-Steal Reality, шаблоны реалистичных корпоративных страниц авторизации и тонкий тюнинг сетевого стека Linux под высокие нагрузки.
-* **[alireza0/s-ui](https://github.com/alireza0/s-ui)** — автору удобной, легковесной и функциональной веб-панели управления ядром Sing-box.
-* **[SagerNet/sing-box](https://github.com/SagerNet/sing-box)** — разработчикам универсального, быстрого и бескомпромиссного прокси-ядра нового поколения.
+* **[torrua/Nginx-L4-Stream-Router-Mask-for-3x-ui](https://github.com/torrua/Nginx-L4-Stream-Router-Mask-for-3x-ui)** 
+* **[Itman75/Nginx-L4-Stream-Router-Mask-for-3x-ui](https://github.com/Itman75/Nginx-L4-Stream-Router-Mask-for-3x-ui)** — первопроходцу концепции «Hardened Master Engine» и внедрению Nginx L4 Stream SNI Router
+* **[mozaroc/3x-ui-pro](https://github.com/mozaroc/3x-ui-pro)**
+* **[xVRVx/autoXRAY](https://github.com/xVRVx/autoXRAY)** — за практические исследования Self-Steal Reality
+* **[alireza0/s-ui](https://github.com/alireza0/s-ui)** — автору удобной веб-панели управления ядром Sing-box.
+* **[SagerNet/sing-box](https://github.com/SagerNet/sing-box)**
 
 ---
 
-## 📄 Лицензия
+## Лицензия
 
 Проект распространяется под открытой лицензией [MIT](LICENSE).
